@@ -151,6 +151,7 @@
     <ClInclude Include="Camera.h" />
     <ClInclude Include="Global.h" />
     <ClInclude Include="Object.h" />
+    <ClInclude Include="OBJ_Loader.h" />
     <ClInclude Include="Rasterizer.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Triangle.h" />

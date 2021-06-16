@@ -2,6 +2,8 @@
 #include <opencv2/opencv.hpp>
 #include "Rasterizer.h"
 #include "Global.h"
+#include "OBJ_Loader.h"
+
 
 constexpr int width = 700;
 constexpr int height = 700;
@@ -28,7 +30,7 @@ void ShowFPS(cv::Mat& dstImage) {
 		cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 255, 255));
 }
 */
-
+/*
 void setObject()
 {
 	Object o1;
@@ -53,6 +55,41 @@ void setObject()
 	objectList.push_back(o2);
 	
 }
+*/
+
+void setModel(const std::string& objName)
+{
+	objl::Loader loader;
+	bool bLoad = loader.LoadFile(objName);
+
+	if (bLoad)
+	{
+		for (const auto& mesh : loader.LoadedMeshes)
+		{
+			Object* o = new Object();
+			for (int i = 0; i < mesh.Vertices.size(); i += 3)
+			{
+				Triangle* t = new Triangle();
+				for (int j = 0; j < 3; j++)
+				{
+					t->setVertex(j, Vector3f(mesh.Vertices[i + j].Position.X, mesh.Vertices[i + j].Position.Y, mesh.Vertices[i + j].Position.Z));
+					t->setColor(j, Vector3f(255, 255, 255));
+					t->setNormal(j, Vector3f(mesh.Vertices[i + j].Normal.X, mesh.Vertices[i + j].Normal.Y, mesh.Vertices[i + j].Normal.Z));
+					t->setTexCoord(j, Vector2f(mesh.Vertices[i + j].TextureCoordinate.X, mesh.Vertices[i + j].TextureCoordinate.Y));
+				}
+				o->triangles.push_back(*t);
+			}
+			o->position = Vector3f(0, 0, 0);
+			o->rotation = Vector3f(0, 0, 0);
+			//angle = o->rotation.y();
+			o->scale = Vector3f(1, 1, 1);
+			//scale = 2;
+			objectList.push_back(*o);
+		}
+	}
+	else 
+		std::cout << "load failed" << std::endl;
+}
 
 void setCamera()
 {
@@ -67,11 +104,12 @@ void setCamera()
 
 int main()
 {
-	setObject();
+	setModel("bunnyTest.obj");
+	//setObject();
 	setCamera();
 	
 	Rasterizer r(width, height);
-	r.setMSAAState();
+	//r.setMSAAState();
 
 	do
 	{

@@ -193,8 +193,13 @@ static std::tuple<float, float, float> computeBarycentric2D(float x, float y, co
 	return { c1,c2,c3 };
 }
 
-//重心坐标插值（坐标点，颜色等）
+//重心坐标插值（颜色等3维坐标）
 static Vector3f interpolate(float alpha, float beta, float gamma, const Eigen::Vector3f& vert1, const Eigen::Vector3f& vert2, const Vector3f& vert3)
+{
+	return (alpha * vert1 + beta * vert2 + gamma * vert3);
+}
+//重心坐标插值（坐标，法线等齐次维坐标）
+static Vector4f interpolate(float alpha, float beta, float gamma, const Vector4f& vert1, const Vector4f& vert2, const Vector4f& vert3)
 {
 	return (alpha * vert1 + beta * vert2 + gamma * vert3);
 }
@@ -260,15 +265,20 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 							//对深度值做反转，保证深度值越小，离相机越远
 							interpolate_z *= -1;
 
-							//判断深度值（小的记录）
+							//判断深度值（数值越大代表离相机越近，记录）
 							if (interpolate_z < depthBuffer[getPixelIndex(x, y)])
 							{
-								//深度更近的话插值出颜色，然后更新深度信息
+								//插值出颜色
 								Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
+								//插值出法线
+								Vector4f interpolateNormal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2]).normalized();
+								//插值出纹理
+								
 								//将颜色值记录到shader中
 								shader.setColor(interpolateColor);
+								shader.setNormal(interpolateNormal);
 								//将颜色值赋给pixel
-								Vector3f pixelColor = shader.BaseVertexColor();
+								Vector3f pixelColor = shader.normalShader();
 								setPixelColor(Vector2i(x, y), pixelColor);
 								//将深度值赋给buffer
 								depthBuffer[getPixelIndex(x, y)] = interpolate_z;
@@ -299,6 +309,7 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 								//计算重心坐标
 								float alpha, beta, gamma;
 								std::tie(alpha, beta, gamma) = computeBarycentric2D((float)x + msa[i][0], (float)y + msa[i][1], t.vertex);
+								
 								//透视矫正插值
 								float Z = 1.0 / (alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
 								//插值计算各个像素点深度
@@ -313,10 +324,14 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 								{
 									//深度更近的话插值出颜色，然后更新深度信息
 									Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
+									//插值出法线
+									Vector4f interpolateNormal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2]).normalized();
 									//将颜色值记录到shader中
 									shader.setColor(interpolateColor);
+									shader.setNormal(interpolateNormal);
+
 									//将颜色值赋给pixel
-									Vector3f pixelColor = shader.BaseVertexColor();
+									Vector3f pixelColor = shader.baseVertexColor();
 
 									//将深度值赋给buffer
 									depthBuffer[getPixelIndex(x, y) + i] = interpolate_z;
