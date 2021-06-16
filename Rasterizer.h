@@ -10,6 +10,12 @@
 
 using namespace Eigen;
 
+enum MSAAState
+{
+	close,
+	open
+};
+
 class Rasterizer
 {
 public:
@@ -41,6 +47,8 @@ public:
 
 	void clearBuffer();
 
+	void setMSAAState();
+
 private:
 	int height;						//屏幕高度
 	int width;						//屏幕宽度
@@ -54,9 +62,11 @@ private:
 	Matrix4f viewPortMatrix;		//视口变换矩阵
 
 	std::vector<Vector3f>	frameBuffer;		//颜色信息的缓冲
+	std::vector<Vector3f>   colorBuffer;
 	std::vector<float>		depthBuffer;		//深度信息缓冲
 
 	Shader shader;								//shader信息
+	MSAAState msaaState;						//MSAA状态
 };
 
 

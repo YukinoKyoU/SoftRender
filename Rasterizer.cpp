@@ -144,9 +144,7 @@ void Rasterizer::vertexShader(std::vector<Object>& objectList, const Camera& c)
 				vec.w() /= vec.w();
 
 				//将坐标点投影到屏幕
-				vec = viewPortMatrix * vec;
-
-				
+				vec = viewPortMatrix * vec;	
 			}
 		}
 	}
@@ -240,40 +238,104 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 			minY = floor(minYf);
 			maxY = ceil(maxYf);
 
-			//对包围盒中的每一个像素
-			for (int y = minY; y < maxY; ++y)
+			if (msaaState == close)
 			{
-				for (int x = minX; x < maxX; ++x)
+				//对包围盒中的每一个像素
+				for (int y = minY; y < maxY; ++y)
 				{
-					//判断像素中心是否在三角形内(像素点在正方形中间)
-					if (isInsideTriangle((float)x + 0.5, (float)y + 0.5, t))
+					for (int x = minX; x < maxX; ++x)
 					{
-						//计算重心坐标
-						float alpha, beta, gamma;
-						std::tie(alpha, beta, gamma) = computeBarycentric2D((float)x + 0.5f, (float)y + 0.5f, t.vertex);
-						//透视矫正插值
-						float Z = 1.0 / (alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
-						//插值计算各个像素点深度
-						float interpolate_z = interpolate(alpha, beta, gamma, t.vertex[0].z(), t.vertex[1].z(), t.vertex[2].z());
-						//透视矫正后计算正确的深度值
-						interpolate_z /= Z;
-						//对深度值做反转，保证深度值越小，离相机越远
-						interpolate_z *= -1;
-
-						//判断深度值（小的记录）
-						if (interpolate_z < depthBuffer[getPixelIndex(x, y)] )
+						//判断像素中心是否在三角形内(像素点在正方形中间)
+						if (isInsideTriangle((float)x + 0.5, (float)y + 0.5, t))
 						{
-							//深度更近的话插值出颜色，然后更新深度信息
-							Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
-							//将颜色值记录到shader中
-							shader.setColor (interpolateColor);
-							//将颜色值赋给pixel
-							Vector3f pixelColor = shader.BaseVertexColor();
-							setPixelColor(Vector2i(x, y), pixelColor);
-							//将深度值赋给buffer
-							depthBuffer[getPixelIndex(x, y)] = interpolate_z;
+							//计算重心坐标
+							float alpha, beta, gamma;
+							std::tie(alpha, beta, gamma) = computeBarycentric2D((float)x + 0.5f, (float)y + 0.5f, t.vertex);
+							//透视矫正插值
+							float Z = 1.0 / (alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
+							//插值计算各个像素点深度
+							float interpolate_z = interpolate(alpha, beta, gamma, t.vertex[0].z(), t.vertex[1].z(), t.vertex[2].z());
+							//透视矫正后计算正确的深度值
+							interpolate_z /= Z;
+							//对深度值做反转，保证深度值越小，离相机越远
+							interpolate_z *= -1;
+
+							//判断深度值（小的记录）
+							if (interpolate_z < depthBuffer[getPixelIndex(x, y)])
+							{
+								//深度更近的话插值出颜色，然后更新深度信息
+								Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
+								//将颜色值记录到shader中
+								shader.setColor(interpolateColor);
+								//将颜色值赋给pixel
+								Vector3f pixelColor = shader.BaseVertexColor();
+								setPixelColor(Vector2i(x, y), pixelColor);
+								//将深度值赋给buffer
+								depthBuffer[getPixelIndex(x, y)] = interpolate_z;
+							}
 						}
 					}
+				}
+			}
+			//开启MSAA
+			else
+			{
+				//设置像素点周围4个点坐标
+				std::vector<Vector2f> msa =
+				{
+					{-0.25, -0.25},
+					{-0.25, +0.25},
+					{+0.25, -0.25},
+					{+0.25, +0.25}
+				};
+				for (int y = minY; y < maxY; ++y)
+				{
+					for (int x = minX; x < maxX; ++x)
+					{
+						for (int i = 0; i < 4; i++)
+						{
+							if (isInsideTriangle((float)x + msa[i][0], (float)y + msa[i][1], t))
+							{
+								//计算重心坐标
+								float alpha, beta, gamma;
+								std::tie(alpha, beta, gamma) = computeBarycentric2D((float)x + msa[i][0], (float)y + msa[i][1], t.vertex);
+								//透视矫正插值
+								float Z = 1.0 / (alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
+								//插值计算各个像素点深度
+								float interpolate_z = interpolate(alpha, beta, gamma, t.vertex[0].z(), t.vertex[1].z(), t.vertex[2].z());
+								//透视矫正后计算正确的深度值
+								interpolate_z /= Z;
+								//对深度值做反转，保证深度值越小，离相机越远
+								interpolate_z *= -1;
+
+								//判断深度值（大的记录）
+								if (interpolate_z < depthBuffer[getPixelIndex(x, y) + i])
+								{
+									//深度更近的话插值出颜色，然后更新深度信息
+									Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
+									//将颜色值记录到shader中
+									shader.setColor(interpolateColor);
+									//将颜色值赋给pixel
+									Vector3f pixelColor = shader.BaseVertexColor();
+
+									//将深度值赋给buffer
+									depthBuffer[getPixelIndex(x, y) + i] = interpolate_z;
+									//将当前坐标颜色值赋给暂时的colorBuffer
+									colorBuffer[getPixelIndex(x, y) + i] = pixelColor;
+								}
+							}
+						}
+
+						Vector3f point_color = { 0, 0, 0 };
+						for(int i = 0; i < 4; i++)
+						{
+							point_color += colorBuffer[getPixelIndex(x, y) + i];
+						}
+						//最终像素点的颜色值为4个亚像素点的颜色值平均
+						Vector3f pixel_color = point_color * 0.25f;
+						setPixelColor({x, y}, pixel_color);
+					}
+					
 				}
 			}
 		}
@@ -300,4 +362,22 @@ void Rasterizer::clearBuffer()
 {
 	std::fill(frameBuffer.begin(), frameBuffer.end(), Vector3f(0, 0, 0));
 	std::fill(depthBuffer.begin(), depthBuffer.end(), std::numeric_limits<float>::infinity());
+}
+
+void Rasterizer::setMSAAState()
+{
+	if (msaaState == close)
+	{
+		msaaState = open;
+		frameBuffer.resize(width * height);
+		colorBuffer.resize(width * height * 4);
+		depthBuffer.resize(width * height * 4);
+	
+	}
+	else
+	{
+		msaaState = close;
+		frameBuffer.resize(width * height);
+		depthBuffer.resize(width * height);
+	}
 }

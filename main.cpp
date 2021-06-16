@@ -3,7 +3,6 @@
 #include "Rasterizer.h"
 #include "Global.h"
 
-
 constexpr int width = 700;
 constexpr int height = 700;
 
@@ -70,16 +69,17 @@ int main()
 {
 	setObject();
 	setCamera();
-
+	
 	Rasterizer r(width, height);
+	r.setMSAAState();
 
 	do
 	{
 		r.clearBuffer();
 		std::vector<Object> list = objectList;
-
 		r.vertexShader(list, camera);
 		r.fragmentShader(list);
+		
 
 		cv::Mat image(height, width, CV_32FC3, r.getFrameBuffer().data());
 		
@@ -88,6 +88,7 @@ int main()
 		cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
 		
 		cv::imshow("image", image);
+
 		cv::waitKey(0);
 
 		std::cout << frameCount++ << std::endl;
