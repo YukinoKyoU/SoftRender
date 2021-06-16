@@ -5,14 +5,13 @@
 
 using namespace Eigen;
 
+//Shader类，根据输入的信息计算返回的颜色值
 class Shader
 {
 public:
-	void setColor(const Vector3f& c)
-	{
-		color = c;
-	}
-
+	//输入的颜色信息
+	void setColor(const Vector3f& c);
+	//返回计算的颜色
 	Vector3f BaseVertexColor()
 	{
 		return color;
