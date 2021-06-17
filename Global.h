@@ -8,4 +8,5 @@ static float toRadian(float angle)
 	return (angle / 180) * PI;
 }
 
+
 #endif // !GLOBAL_H_

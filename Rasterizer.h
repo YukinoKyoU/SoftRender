@@ -1,12 +1,19 @@
 #ifndef RASTERIZER_H_
 #define RASTERIZER_H_
 
+#include <iostream>
+#include <optional>
+
 #include <Eigen/Eigen>
 #include <vector>
 #include "Object.h"
 #include "Camera.h"
 #include "Shader.h"
+#include "Light.h"
 #include "Global.h"
+
+#include "Texture.h"
+
 
 using namespace Eigen;
 
@@ -30,11 +37,15 @@ public:
 	//设置projection矩阵
 	void setProjectionMatrix(const Camera& c);
 
+	void SetTexture(Texture tex);
+	void SetBumpMap(Texture bTex);
+	void SetNormalMap(Texture nTex);
+
 	//顶点着色器，将坐标点转换为屏幕空间中
-	void vertexShader(std::vector<Object>& objectList, const Camera& c);
+	void vertexShader(std::vector<Object>& objectList, std::vector<Light>& lightLists, Camera& camera);
 
 	//片元着色器
-	void fragmentShader(std::vector<Object>& objectList);
+	void fragmentShader(std::vector<Object>& objectList, std::vector<Light>& lightLists);
 
 	//设置像素点颜色
 	void setPixelColor(const Vector2i point, const Vector3f color);
@@ -67,6 +78,11 @@ private:
 
 	Shader shader;								//shader信息
 	MSAAState msaaState;						//MSAA状态
+
+
+	std::optional<Texture> texture;
+	std::optional<Texture> bumpMap;
+	std::optional<Texture> normalMap;
 };
 
 

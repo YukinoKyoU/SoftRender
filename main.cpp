@@ -3,34 +3,17 @@
 #include "Rasterizer.h"
 #include "Global.h"
 #include "OBJ_Loader.h"
+#include "Texture.h"
 
 
 constexpr int width = 700;
 constexpr int height = 700;
 
 std::vector<Object> objectList;
-Camera camera;
+std::vector<Light> lightList;
 
 int frameCount = 0;
-/*
-void ShowFPS(cv::Mat& dstImage) {
-	char str[20];	//存放字符串化的帧率
-	double fps;		//帧率
-	double t_front, t_now;					//用于中间计算
 
-	t_front = (double)cv::getTickCount();		//返回从操作系统启动到当前所经过的毫秒数
-	t_now = ((double)cv::getTickCount() - t_front) / cv::getTickFrequency();	//getTickFrequency返回每秒的计时周期数
-	fps = 1.0 / t_now;
-
-	std::string FPSstring("FPS:");
-	sprintf_s(str, "%.2f", fps);
-	FPSstring += str;
-	//在帧上显示"FPS:XXXX"
-	putText(dstImage, FPSstring, cv::Point(5, 20),
-		cv::FONT_HERSHEY_COMPLEX, 0.5, cv::Scalar(255, 255, 255));
-}
-*/
-/*
 void setObject()
 {
 	Object o1;
@@ -55,7 +38,7 @@ void setObject()
 	objectList.push_back(o2);
 	
 }
-*/
+
 
 void setModel(const std::string& objName)
 {
@@ -80,9 +63,9 @@ void setModel(const std::string& objName)
 				o->triangles.push_back(*t);
 			}
 			o->position = Vector3f(0, 0, 0);
-			o->rotation = Vector3f(0, 0, 0);
+			o->rotation = Vector3f(0, 135, 0);
 			//angle = o->rotation.y();
-			o->scale = Vector3f(1, 1, 1);
+			o->scale = Vector3f(1.5, 1.5, 1);
 			//scale = 2;
 			objectList.push_back(*o);
 		}
@@ -91,32 +74,40 @@ void setModel(const std::string& objName)
 		std::cout << "load failed" << std::endl;
 }
 
-void setCamera()
+void SetTexture(Rasterizer& r)
 {
-	camera.position = Vector3f(0, 0, 10);
-	camera.lookAt = Vector3f(0, 0, -1).normalized();
-	camera.up = Vector3f(0, 1, 0).normalized();
-	camera.fov = 45.f;
-	camera.nNear = 0.1f;
-	camera.nFar = 50.f;
-	camera.aspectRatio = width / height;
+	std::string texPath = "./";
+	std::string texName = "Texture.png";
+	// std::string bumpName = "BumpTest01.png";
+	//std::string normalName = "Normal.png";
+	r.SetTexture(texPath + texName);
+	// r.SetBumpMap(texPath + bumpName);
+	//r.SetNormalMap(texPath + normalName);
 }
 
 int main()
 {
-	setModel("bunnyTest.obj");
+	Camera camera(Vector3f(0, 0, 10), Vector3f(0, 0, -1).normalized(), Vector3f(0, 1, 0).normalized(),
+		45.f, 0.1f, 50.f, width / height);
+
+	Light light1({20, 20, 20, 1}, {700, 700, 700}, {10, 10, 10});
+	Light light2({-20, 20, 0, 1}, {500, 500, 500}, {10, 10, 10});
+	lightList.push_back(light1);
+	lightList.push_back(light2);
+
+	setModel("Model.obj");
 	//setObject();
-	setCamera();
-	
 	Rasterizer r(width, height);
 	//r.setMSAAState();
+	SetTexture(r);
 
-	do
+	while(1)
 	{
 		r.clearBuffer();
 		std::vector<Object> list = objectList;
-		r.vertexShader(list, camera);
-		r.fragmentShader(list);
+
+		r.vertexShader(list, lightList, camera);
+		r.fragmentShader(list, lightList);
 		
 
 		cv::Mat image(height, width, CV_32FC3, r.getFrameBuffer().data());
@@ -130,7 +121,7 @@ int main()
 		cv::waitKey(0);
 
 		std::cout << frameCount++ << std::endl;
-	} while (0);
+	} 
 
 	
 

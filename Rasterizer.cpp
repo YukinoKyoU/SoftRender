@@ -11,6 +11,10 @@ Rasterizer::Rasterizer(const int& w, const int& h) : width(w), height(h)
 					0, height / 2, 0, height / 2,
 					0, 0, 1, 0,
 					0, 0, 0, 1;
+
+	texture = std::nullopt;
+	bumpMap = std::nullopt;
+	normalMap = std::nullopt;
 }
 
 Rasterizer::~Rasterizer()
@@ -116,14 +120,14 @@ void Rasterizer::setProjectionMatrix(const Camera& c)
 
 }
 
-void Rasterizer::vertexShader(std::vector<Object>& objectList, const Camera& c)
+void Rasterizer::vertexShader(std::vector<Object>& objectList, std::vector<Light>& lightLists, Camera& camera)
 {
 	//读取物体列表中的所有物体
 	for (Object& object : objectList)
 	{	
 		setModelMatrix(object);
-		setViewMatrix(c);
-		setProjectionMatrix(c);
+		setViewMatrix(camera);
+		setProjectionMatrix(camera);
 
 		//设置MVP函数
 		mvpMatrix = projectionMatrix * viewMatrix * modelMatrix;
@@ -136,17 +140,29 @@ void Rasterizer::vertexShader(std::vector<Object>& objectList, const Camera& c)
 			{
 				//求出CVV空间下坐标
 				vec = mvpMatrix * vec;
-
+				//将坐标点投影到屏幕
+				vec = viewPortMatrix * vec;
 				//透视除法，将w值归一，获得齐次坐标
 				vec.x() /= vec.w();
 				vec.y() /= vec.w();
 				vec.z() /= vec.w();
 				vec.w() /= vec.w();
-
-				//将坐标点投影到屏幕
-				vec = viewPortMatrix * vec;	
+			}
+			for (auto& n : tri.normal)
+			{
+				n = viewMatrix * modelMatrix * n;
 			}
 		}
+	}
+
+	for (auto& l : lightLists)
+	{
+		l.position = viewMatrix * l.position;
+
+		l.position.x() /= l.position.w();
+		l.position.y() /= l.position.w();
+		l.position.z() /= l.position.w();
+		l.position.w() /= l.position.w();
 	}
 }
 
@@ -186,14 +202,19 @@ static bool isInsideTriangle(const float x, const float y, const Triangle& t)
 }
 
 //求一个点的重心坐标
-static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector4f* v) {
+static std::tuple<float, float, float> Barycentric2D(float x, float y, const Vector4f* v) {
 	float c1 = (x * (v[1].y() - v[2].y()) + (v[2].x() - v[1].x()) * y + v[1].x() * v[2].y() - v[2].x() * v[1].y()) / (v[0].x() * (v[1].y() - v[2].y()) + (v[2].x() - v[1].x()) * v[0].y() + v[1].x() * v[2].y() - v[2].x() * v[1].y());
 	float c2 = (x * (v[2].y() - v[0].y()) + (v[0].x() - v[2].x()) * y + v[2].x() * v[0].y() - v[0].x() * v[2].y()) / (v[1].x() * (v[2].y() - v[0].y()) + (v[0].x() - v[2].x()) * v[1].y() + v[2].x() * v[0].y() - v[0].x() * v[2].y());
 	float c3 = (x * (v[0].y() - v[1].y()) + (v[1].x() - v[0].x()) * y + v[0].x() * v[1].y() - v[1].x() * v[0].y()) / (v[2].x() * (v[0].y() - v[1].y()) + (v[1].x() - v[0].x()) * v[2].y() + v[0].x() * v[1].y() - v[1].x() * v[0].y());
 	return { c1,c2,c3 };
 }
 
-//重心坐标插值（颜色等3维坐标）
+//重心坐标插值（纹理等二维坐标）
+static Vector2f interpolate(float alpha, float beta, float gamma, const Vector2f& vert1, const Vector2f& vert2, const Vector2f& vert3)
+{
+	return (alpha * vert1 + beta * vert2 + gamma * vert3);
+}
+//重心坐标插值（颜色等三维坐标）
 static Vector3f interpolate(float alpha, float beta, float gamma, const Eigen::Vector3f& vert1, const Eigen::Vector3f& vert2, const Vector3f& vert3)
 {
 	return (alpha * vert1 + beta * vert2 + gamma * vert3);
@@ -203,6 +224,7 @@ static Vector4f interpolate(float alpha, float beta, float gamma, const Vector4f
 {
 	return (alpha * vert1 + beta * vert2 + gamma * vert3);
 }
+
 //重心坐标插值（深度值）
 static float interpolate(float alpha, float beta, float gamma, const float& vert1, const float& vert2, const float& vert3)
 {
@@ -210,8 +232,11 @@ static float interpolate(float alpha, float beta, float gamma, const float& vert
 }
 
 //片元着色器
-void Rasterizer::fragmentShader(std::vector<Object>& objectList)
+void Rasterizer::fragmentShader(std::vector<Object>& objectList, std::vector<Light>& lightLists)
 {
+	shader.SetTexture(texture ? &*texture : nullptr);
+	shader.SetBumpMap(bumpMap ? &*bumpMap : nullptr);
+	shader.SetNormalMap(normalMap ? &*normalMap : nullptr);
 	//遍历物体列表中的所有物体
 	for (Object& object : objectList)
 	{
@@ -246,25 +271,36 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 			if (msaaState == close)
 			{
 				//对包围盒中的每一个像素
-				for (int y = minY; y < maxY; ++y)
+				for (int j = minY; j <= maxY; ++j)
 				{
-					for (int x = minX; x < maxX; ++x)
+					for (int i = minX; i <= maxX; ++i)
 					{
+						float x = static_cast<float>(i) + 0.5f;
+						float y = static_cast<float>(j) + 0.5f;
 						//判断像素中心是否在三角形内(像素点在正方形中间)
-						if (isInsideTriangle((float)x + 0.5, (float)y + 0.5, t))
+						if (isInsideTriangle(x, y, t))
 						{
+							
 							//计算重心坐标
 							float alpha, beta, gamma;
-							std::tie(alpha, beta, gamma) = computeBarycentric2D((float)x + 0.5f, (float)y + 0.5f, t.vertex);
+							std::tie(alpha, beta, gamma) = Barycentric2D(x, y, t.vertex);
 							//透视矫正插值
-							float Z = 1.0 / (alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
+							float Z = 1.0f/(alpha / t.vertex[0].w() + beta / t.vertex[1].w() + gamma / t.vertex[2].w());
 							//插值计算各个像素点深度
 							float interpolate_z = interpolate(alpha, beta, gamma, t.vertex[0].z(), t.vertex[1].z(), t.vertex[2].z());
 							//透视矫正后计算正确的深度值
-							interpolate_z /= Z;
+							interpolate_z *= Z;
+
+							//将坐标点位置转换回view坐标下，保证插值的正确结果
+							Vector4f position[3] =
+							{
+								projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[0],
+								projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[1],
+								projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[2],
+							};
+							
 							//对深度值做反转，保证深度值越小，离相机越远
 							interpolate_z *= -1;
-
 							//判断深度值（数值越大代表离相机越近，记录）
 							if (interpolate_z < depthBuffer[getPixelIndex(x, y)])
 							{
@@ -272,13 +308,20 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 								Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
 								//插值出法线
 								Vector4f interpolateNormal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2]).normalized();
-								//插值出纹理
+								interpolateNormal *= Z;
+								//插值出坐标
+								Vector4f interpolatePosition = interpolate(alpha, beta, gamma, position[0], position[1], position[2]);
+								Vector2f interploateTexcoord = interpolate(alpha, beta, gamma, t.texCoord[0], t.texCoord[1], t.texCoord[2]);
 								
-								//将颜色值记录到shader中
+								//将插值信息记录到shader中
 								shader.setColor(interpolateColor);
 								shader.setNormal(interpolateNormal);
+								shader.setLight(lightLists);
+								shader.setPosition(interpolatePosition);
+								shader.setTexCoord(interploateTexcoord);
+
 								//将颜色值赋给pixel
-								Vector3f pixelColor = shader.normalShader();
+								Vector3f pixelColor = shader.TextureShader();
 								setPixelColor(Vector2i(x, y), pixelColor);
 								//将深度值赋给buffer
 								depthBuffer[getPixelIndex(x, y)] = interpolate_z;
@@ -288,7 +331,7 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 				}
 			}
 			//开启MSAA
-			else
+			//else
 			{
 				//设置像素点周围4个点坐标
 				std::vector<Vector2f> msa =
@@ -303,7 +346,7 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 					for (int x = minX; x < maxX; ++x)
 					{
 						for (int i = 0; i < 4; i++)
-						{
+						{	/*
 							if (isInsideTriangle((float)x + msa[i][0], (float)y + msa[i][1], t))
 							{
 								//计算重心坐标
@@ -319,6 +362,14 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 								//对深度值做反转，保证深度值越小，离相机越远
 								interpolate_z *= -1;
 
+								//将坐标点位置转换回view坐标下，保证插值的正确结果
+								Vector4f position[3] =
+								{
+									projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[0],
+									projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[1],
+									projectionMatrix.inverse() * viewPortMatrix.inverse() * t.vertex[2],
+								};
+								
 								//判断深度值（大的记录）
 								if (interpolate_z < depthBuffer[getPixelIndex(x, y) + i])
 								{
@@ -326,21 +377,28 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 									Vector3f interpolateColor = interpolate(alpha, beta, gamma, t.color[0], t.color[1], t.color[2]);
 									//插值出法线
 									Vector4f interpolateNormal = interpolate(alpha, beta, gamma, t.normal[0], t.normal[1], t.normal[2]).normalized();
-									//将颜色值记录到shader中
+									//插值出坐标
+									Vector4f interpolatePosition = interpolate(alpha, beta, gamma, t.vertex[0], t.vertex[1], t.vertex[2]);
+									
+									//将插值信息记录到shader中
 									shader.setColor(interpolateColor);
 									shader.setNormal(interpolateNormal);
+									shader.setLight(lightLists);
+									shader.setPosition(interpolatePosition);
 
 									//将颜色值赋给pixel
-									Vector3f pixelColor = shader.baseVertexColor();
+									Vector3f pixelColor = shader.BlinnPhongShader(camera);
 
 									//将深度值赋给buffer
 									depthBuffer[getPixelIndex(x, y) + i] = interpolate_z;
 									//将当前坐标颜色值赋给暂时的colorBuffer
 									colorBuffer[getPixelIndex(x, y) + i] = pixelColor;
 								}
+								
 							}
+							*/
 						}
-
+						/*
 						Vector3f point_color = { 0, 0, 0 };
 						for(int i = 0; i < 4; i++)
 						{
@@ -349,6 +407,7 @@ void Rasterizer::fragmentShader(std::vector<Object>& objectList)
 						//最终像素点的颜色值为4个亚像素点的颜色值平均
 						Vector3f pixel_color = point_color * 0.25f;
 						setPixelColor({x, y}, pixel_color);
+						*/
 					}
 					
 				}
@@ -377,6 +436,21 @@ void Rasterizer::clearBuffer()
 {
 	std::fill(frameBuffer.begin(), frameBuffer.end(), Vector3f(0, 0, 0));
 	std::fill(depthBuffer.begin(), depthBuffer.end(), std::numeric_limits<float>::infinity());
+}
+
+void Rasterizer::SetTexture(Texture tex)
+{
+	texture = tex;
+}
+
+void Rasterizer::SetBumpMap(Texture bTex)
+{
+	bumpMap = bTex;
+}
+
+void Rasterizer::SetNormalMap(Texture nTex)
+{
+	normalMap = nTex;
 }
 
 void Rasterizer::setMSAAState()

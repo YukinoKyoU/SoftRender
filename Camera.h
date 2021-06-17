@@ -15,6 +15,15 @@ struct Camera
 	float nFar;			//远平面
 	float aspectRatio; //屏幕宽高比
 
+	Camera(Vector3f _position,
+		Vector3f _lookAt,
+		Vector3f _up,		
+		float _fov,		
+		float _nNear,		
+		float _nFar,		
+		float _aspectRatio) : position(_position), lookAt(_lookAt), up(_up), fov(_fov), nNear(_nNear), nFar(_nFar), aspectRatio(_aspectRatio)
+	{}
+
 };
 
 

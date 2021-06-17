@@ -1,0 +1,24 @@
+#ifndef TEXTURE_H_
+#define TEXTURE_H_
+
+#include <opencv2/opencv.hpp>
+#include "Eigen/Eigen"
+#include <iostream>
+using namespace Eigen;
+
+class Texture
+{
+public:
+	Texture(std::string name);
+
+	Vector3f GetColor(float u, float v);
+
+	int GetWidth() { return width; }
+	int GetHeight() { return height; }
+
+private:
+	cv::Mat texture;
+	int width, height;
+};
+
+#endif // !TEXTURE_H_
