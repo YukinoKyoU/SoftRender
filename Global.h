@@ -3,7 +3,7 @@
 
 constexpr float PI = 3.1415926;
 
-static float toRadian(float angle)
+static float angleToRadian(float angle)
 {
 	return (angle / 180) * PI;
 }

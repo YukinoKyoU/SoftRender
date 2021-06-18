@@ -14,6 +14,33 @@ std::vector<Light> lightList;
 
 int frameCount = 0;
 
+void SetTriangles()
+{
+	//°®ÐÄ
+	Object o1;
+	Triangle t1, t2, t3, t4, t5;
+	t1.setVertex(Vector3f(0, -1, 0), Vector3f(3, 3, 0), Vector3f(-3, 3, 0));
+	t1.setColor(Vector3f(225, 0, 0), Vector3f(255, 0, 100), Vector3f(255, 0, 100));
+	o1.triangles.push_back(t1);
+	t2.setVertex(Vector3f(0, 3, 0), Vector3f(3, 3, 0), Vector3f(1.5, 4, 0));
+	t2.setColor(Vector3f(255, 0, 100), Vector3f(255, 0, 100), Vector3f(255, 0, 255));
+	o1.triangles.push_back(t2);
+	t3.setVertex(Vector3f(0, 3, 0), Vector3f(-1.5, 4, 0), Vector3f(-3, 3, 0));
+	t3.setColor(Vector3f(255, 0, 100), Vector3f(255, 0, 255), Vector3f(255, 0, 100));
+	o1.triangles.push_back(t3);
+	t4.setVertex(Vector3f(0, -1, 0), Vector3f(2.5, 1.5, 0), Vector3f(3, 3, 0));
+	t4.setColor(Vector3f(255, 0, 0), Vector3f(255, 0, 0), Vector3f(255, 0, 100));
+	o1.triangles.push_back(t4);
+	t5.setVertex(Vector3f(0, -1, 0), Vector3f(-3, 3, 0), Vector3f(-2.5, 1.5, 0));
+	t5.setColor(Vector3f(255, 0, 0), Vector3f(255, 0, 100), Vector3f(255, 0, 0));
+	o1.triangles.push_back(t5);
+
+	o1.object_position = Vector3f(0, 0, 0);
+	o1.object_rotation = Vector3f(0, 0, 0);
+	o1.object_scale = Vector3f(1, 1, 1);
+	objectList.push_back(o1);
+}
+
 void setObject()
 {
 	Object o1;
@@ -21,9 +48,9 @@ void setObject()
 	t1.setVertex(Vector3f(2, 0, -2), Vector3f(0, 2, -2), Vector3f(-2, 0, -2));
 	t1.setColor(Vector3f(255, 0, 0), Vector3f(0, 225, 0), Vector3f(0, 0, 255));
 	o1.triangles.push_back(t1);
-	o1.position = Vector3f(0, 0, 0);
-	o1.rotation = Vector3f(0, 0, 0);
-	o1.scale = Vector3f(1, 1, 1);
+	o1.object_position = Vector3f(0, 0, 0);
+	o1.object_rotation = Vector3f(0, 0, 0);
+	o1.object_scale = Vector3f(1, 1, 1);
 	objectList.push_back(o1);
 	
 	//o2
@@ -32,9 +59,9 @@ void setObject()
 	t2.setVertex(Vector3f(3.5, -1, -5), Vector3f(2.5, 1.5, -5), Vector3f(-1, 0.5, -5));
 	t2.setColor(Vector3f(225, 0, 0), Vector3f(0, 255, 0), Vector3f(0, 0, 255));
 	o2.triangles.push_back(t2);
-	o2.position = Vector3f(0, 0, 0);
-	o2.rotation = Vector3f(0, 0, 0);
-	o2.scale = Vector3f(1, 1, 1);
+	o2.object_position = Vector3f(0, 0, 0);
+	o2.object_rotation = Vector3f(0, 0, 0);
+	o2.object_scale = Vector3f(1, 1, 1);
 	objectList.push_back(o2);
 	
 }
@@ -62,10 +89,10 @@ void setModel(const std::string& objName)
 				}
 				o->triangles.push_back(*t);
 			}
-			o->position = Vector3f(0, 0, 0);
-			o->rotation = Vector3f(0, 135, 0);
+			o->object_position = Vector3f(0, 0, 0);
+			o->object_rotation = Vector3f(0, 135, 0);
 			//angle = o->rotation.y();
-			o->scale = Vector3f(1.5, 1.5, 1);
+			o->object_scale = Vector3f(1.5f, 1.5f, 1.5f);
 			//scale = 2;
 			objectList.push_back(*o);
 		}
@@ -76,12 +103,12 @@ void setModel(const std::string& objName)
 
 void SetTexture(Rasterizer& r)
 {
-	std::string texPath = "./";
-	std::string texName = "Texture.png";
-	// std::string bumpName = "BumpTest01.png";
-	//std::string normalName = "Normal.png";
+	std::string texPath = "./models/spot/";
+	std::string texName = "spot_texture.png";
+	std::string bumpName = "hmap.jpg";
+	//std::string normalName = "hmap.jpg";
 	r.SetTexture(texPath + texName);
-	// r.SetBumpMap(texPath + bumpName);
+	r.SetBumpMap(texPath + bumpName);
 	//r.SetNormalMap(texPath + normalName);
 }
 
@@ -95,8 +122,9 @@ int main()
 	lightList.push_back(light1);
 	lightList.push_back(light2);
 
-	setModel("Model.obj");
+	setModel("./models/spot/Model.obj");
 	//setObject();
+	//SetTriangles();
 	Rasterizer r(width, height);
 	//r.setMSAAState();
 	SetTexture(r);
@@ -104,10 +132,11 @@ int main()
 	while(1)
 	{
 		r.clearBuffer();
-		std::vector<Object> list = objectList;
+		std::vector<Object> olist = objectList;
+		std::vector<Light> lList = lightList;
 
-		r.vertexShader(list, lightList, camera);
-		r.fragmentShader(list, lightList);
+		r.vertexShader(olist, lList, camera);
+		r.fragmentShader(olist, lList);
 		
 
 		cv::Mat image(height, width, CV_32FC3, r.getFrameBuffer().data());

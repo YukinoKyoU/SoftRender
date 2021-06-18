@@ -13,6 +13,10 @@ public:
 	Vector4f normal[3];		//三个法线坐标
 	Vector2f texCoord[3];	//三个纹理坐标
 
+	Vector4f vertex_in_view[3];
+	Vector4f vertex_in_clip[3];
+
+
 	Triangle();
 	//设置三角形的顶点，将三维转化为齐次坐标
 	void setVertex(const Vector3f& v0, const Vector3f& v1, const Vector3f& v2);

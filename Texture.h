@@ -6,6 +6,11 @@
 #include <iostream>
 using namespace Eigen;
 
+enum mipmap
+{
+	close,
+	open
+};
 class Texture
 {
 public:
@@ -19,6 +24,7 @@ public:
 private:
 	cv::Mat texture;
 	int width, height;
+	mipmap mipmapState;
 };
 
 #endif // !TEXTURE_H_

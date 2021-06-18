@@ -50,7 +50,7 @@ Vector3f Shader::BlinnPhongShader()
 	for (const Light& light : *lightLists)
 	{
 
-		Vector3f light_position = Vector3f(light.position.x(), light.position.y(), light.position.z());
+		Vector3f light_position = Vector3f(light.light_position.x(), light.light_position.y(), light.light_position.z());
 		
 		Vector3f diffuse, specular, ambient;
 		//点距光源的距离
@@ -58,12 +58,12 @@ Vector3f Shader::BlinnPhongShader()
 		//光照方向
 		Vector3f light_dir = (light_position - point_position).normalized();
 		//观察方向
-		Vector3f eye_dir = - point_position.normalized();
+		Vector3f eye_dir = -point_position.normalized();
 		//半程向量
-		Vector3f h = (eye_dir + light_dir).normalized();
+		Vector3f h = (eye_dir.normalized() + light_dir.normalized()).normalized();
 
-		diffuse = kd.cwiseProduct(light.intensity / r) * std::max(0.0f, pointNormal.dot(light_dir));
-		specular = ks.cwiseProduct(light.intensity / r) * std::pow(std::max(0.0f, pointNormal.dot(h)), p);
+		diffuse = kd.cwiseProduct(light.light_intensity / r) * std::max(0.0f, pointNormal.dot(light_dir));
+		specular = ks.cwiseProduct(light.light_intensity / r) * std::pow(std::max(0.0f, pointNormal.dot(h)), p);
 		ambient = ka.cwiseProduct(light.amb_light_intensity);
 
 		resultColor += (diffuse + specular + ambient);
@@ -84,14 +84,14 @@ Vector3f Shader::TextureShader()
 	Vector3f ka = Vector3f(0.005, 0.005, 0.005);
 	Vector3f kd = diffColor / 255;
 	Vector3f ks = Vector3f(0.7937, 0.7937, 0.7937);
-	float p = 100;
+	float p = 150;
 
 	Vector3f point_position = Vector3f(pointPosition.x(), pointPosition.y(), pointPosition.z());
 
 	Vector3f resultColor = { 0, 0, 0 };
 	for (const auto& light : *lightLists)
 	{
-		Vector3f light_position = Vector3f(light.position.x(), light.position.y(), light.position.z());
+		Vector3f light_position = Vector3f(light.light_position.x(), light.light_position.y(), light.light_position.z());
 
 		Vector3f diffuse, specular, ambient;
 		//点距光源的距离
@@ -101,11 +101,11 @@ Vector3f Shader::TextureShader()
 		//观察方向
 		Vector3f eye_dir = -point_position.normalized();
 		//半程向量
-		Vector3f h = (eye_dir + light_dir).normalized();
+		Vector3f h = (eye_dir.normalized() + light_dir.normalized()).normalized();
 
 		//计算环境光、漫反射和高光颜色
-		diffuse = kd.cwiseProduct(light.intensity / r) * std::max(0.0f, pointNormal.dot(light_dir));
-		specular = ks.cwiseProduct(light.intensity / r) * std::pow(std::max(0.0f, pointNormal.dot(h)), p);
+		diffuse = kd.cwiseProduct(light.light_intensity / r) * std::max(0.0f, pointNormal.dot(light_dir));
+		specular = ks.cwiseProduct(light.light_intensity / r) * std::pow(std::max(0.0f, pointNormal.dot(h)), p);
 		ambient = ka.cwiseProduct(light.amb_light_intensity);
 
 		resultColor += ambient + diffuse + specular;
