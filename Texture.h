@@ -4,12 +4,13 @@
 #include <opencv2/opencv.hpp>
 #include "Eigen/Eigen"
 #include <iostream>
+
 using namespace Eigen;
 
-enum mipmap
+enum double_lerp
 {
-	close,
-	open
+	Close,
+	Open
 };
 class Texture
 {
@@ -24,7 +25,7 @@ public:
 private:
 	cv::Mat texture;
 	int width, height;
-	mipmap mipmapState;
+	double_lerp double_lerp_state;
 };
 
 #endif // !TEXTURE_H_

@@ -12,12 +12,13 @@
 #include "Light.h"
 #include "Global.h"
 
+
 #include "Texture.h"
 
 
 using namespace Eigen;
 
-enum MSAAState
+enum SSAAState
 {
 	close,
 	open
@@ -30,22 +31,15 @@ public:
 	Rasterizer(const int& w, const int& h);
 	~Rasterizer();
 
-	//设置model矩阵
-	void setModelMatrix(const Object& o);
-	//设置view矩阵
-	void setViewMatrix(const Camera& c);
-	//设置projection矩阵
-	void setProjectionMatrix(const Camera& c);
-
 	void SetTexture(Texture tex);
 	void SetBumpMap(Texture bTex);
 	void SetNormalMap(Texture nTex);
 
 	//顶点着色器，将坐标点转换为屏幕空间中
-	void vertexShader(std::vector<Object>& objectList, std::vector<Light>& lightLists, Camera& camera);
+	void vertexShader(std::vector<Object>& objectList, std::vector<Light>& lightList, Camera& camera);
 
 	//片元着色器
-	void fragmentShader(std::vector<Object>& objectList, std::vector<Light>& lightLists);
+	void fragmentShader(std::vector<Object>& objectList, std::vector<Light>& lightList);
 
 	//设置像素点颜色
 	void setPixelColor(const Vector2i point, const Vector3f color);
@@ -58,27 +52,34 @@ public:
 
 	void clearBuffer();
 
-	void setMSAAState();
+	void setModelMatrix(const Object & object);
+
+	//void setViewMatrix(const Camera& c);
+	//void setProjectionMatrix(const Camera& c);
+
+	void setViewMatrix(const Matrix4f& v);
+	void setProjectionMatrix(const Matrix4f& p);
+
+	void setSSAAState();
 
 private:
 	int height;						//屏幕高度
 	int width;						//屏幕宽度
 
-	Matrix4f modelMatrix;			//model矩阵
-	Matrix4f viewMatrix;			//view矩阵
-	Matrix4f projectionMatrix;		//projection矩阵
+	Matrix4f model_matrix;			//model矩阵
+	Matrix4f view_matrix;			//view矩阵
+	Matrix4f projection_matrix;		//projection矩阵
 
-	Matrix4f mvpMatrix;				//mvp矩阵
+	Matrix4f mvp_matrix;				//mvp矩阵
 
-	Matrix4f viewPortMatrix;		//视口变换矩阵
+	Matrix4f viewport_matrix;		//视口变换矩阵
 
 	std::vector<Vector3f>	frameBuffer;		//颜色信息的缓冲
 	std::vector<Vector3f>   colorBuffer;
 	std::vector<float>		depthBuffer;		//深度信息缓冲
 
 	Shader shader;								//shader信息
-	MSAAState msaaState;						//MSAA状态
-
+	SSAAState ssaaState;						//MSAA状态
 
 	std::optional<Texture> texture;
 	std::optional<Texture> bumpMap;

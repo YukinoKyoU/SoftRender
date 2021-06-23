@@ -9,11 +9,23 @@
 
 using namespace Eigen;
 
+enum ShaderType
+{
+	BaseVertexColor,	// 顶点色
+	NormalColor,		// 法线颜色
+	BlinnPhongShading,	// Blinn-Phong着色
+
+	TextureShading,		// 贴图着色
+	TextureWithBump,	// 高度图着色
+	TextureWithNormal	// 法线贴图着色
+};
 //Shader类，根据输入的信息计算返回的颜色值
 class Shader
 {
 public:
 	Shader();
+
+	Vector3f setShaderType();
 	//设置shader的颜色信息
 	void setColor(const Vector3f& _pointColor);
 	//返回计算的颜色
@@ -27,37 +39,27 @@ public:
 	//计算坐标
 	void setPosition(const Vector4f& _pointPosition);
 	
-	void setTexCoord(const Vector2f& tC)
-	{
-		pointTexCoord = tC;
-	}
-	void SetTexture(Texture* t)
-	{
-		pointTexture = t;
-	}
-	void SetBumpMap(Texture* bM)
-	{
-		pointBumpMap = bM;
-	}
-	void SetNormalMap(Texture* nM)
-	{
-		pointNormalMap = nM;
-	}
+	void setTexCoord(const Vector2f& tC);
+	void setTexture(Texture* t);
+	void setBumpMap(Texture* bM);
+	void setNormalMap(Texture* nM);
 
-	Vector3f BlinnPhongShader();
-	Vector3f TextureShader();
-	Vector3f TextureWithBump();
-	Vector3f TextureWithNormal();
+	Vector3f blinnPhongShader();
+	Vector3f textureShader();
+	Vector3f textureWithBump();
+	Vector3f textureWithNormal();
 
 private:
-	Vector3f pointColor;
-	Vector3f pointNormal;
+	Vector3f point_color;
+	Vector3f point_normal;
 	const std::vector<Light> *lightLists;
-	Vector3f pointPosition;
-	Vector2f pointTexCoord;
-	Texture* pointTexture;
-	Texture* pointBumpMap;
-	Texture* pointNormalMap;
+	Vector3f point_position;
+	Vector2f point_texCoord;
+	Texture* point_texture;
+	Texture* point_bumpMap;
+	Texture* point_normalMap;
+
+	ShaderType shader_type;
 };
 
 #endif // !Shader

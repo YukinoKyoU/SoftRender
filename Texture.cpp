@@ -19,7 +19,7 @@ Vector3f Texture::GetColor(float u, float v)
 	float vT = (1 - v) * (height - 1);
 
 	cv::Vec3b color;
-	if (mipmapState == open)
+	if (double_lerp_state == double_lerp :: Open)
 	{
 		float u_min = std::floor(uT);
 		float u_max = std::min((float)(width-1), std::ceil(uT));
