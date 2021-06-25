@@ -118,6 +118,7 @@ void Rasterizer::setProjectionMatrix(const Camera& c)
 	projection_matrix = ortho * perspective ;
 }
 */
+
 void Rasterizer::vertexShader(std::vector<Object>& objectList, std::vector<Light>& lightList, Camera& camera)
 {
 	//读取物体列表中的所有物体
@@ -422,4 +423,3 @@ void Rasterizer::setProjectionMatrix(const Matrix4f& p)
 {
 	projection_matrix = p;
 }
-

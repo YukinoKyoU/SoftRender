@@ -15,5 +15,4 @@ struct Object
 	Vector3f object_scale;							//物体的缩放
 };
 
-
 #endif // !OBJECT_H_

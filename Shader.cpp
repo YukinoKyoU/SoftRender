@@ -2,7 +2,7 @@
 
 Shader::Shader()
 {
-	shader_type = ShaderType::BaseVertexColor;
+	shader_type = ShaderType::TextureShading;
 
 	point_texture = nullptr;
 	point_bumpMap = nullptr;

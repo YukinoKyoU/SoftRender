@@ -1,5 +1,7 @@
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgproc/types_c.h>
+
 #include "Rasterizer.h"
 #include "OBJ_Loader.h"
 #include "Texture.h"
@@ -8,9 +10,22 @@
 
 constexpr int screen_width = 700;
 constexpr int screen_height = 700;
+int key = 0;
+float angle = 0;
+float scale = 1;
+
+Camera camera(Vector3f(0, 0, 10), Vector3f(0, 0, -1).normalized(), Vector3f(0, 1, 0).normalized(),
+	45.f, 0.1f, 50.f, screen_width / screen_height);
+
+//键盘输入
+void processInput();
+//鼠标输入
+void OnMouse(int event, int x, int y, int flags, void* ustc);
 
 std::vector<Object> objectList;
 std::vector<Light> lightList;
+
+
 
 int frameCount = 0;
 
@@ -113,32 +128,33 @@ void SetTexture(Rasterizer& r)
 
 int main()
 {
-	Camera camera(Vector3f(0, 0, 10), Vector3f(0, 0, -1).normalized(), Vector3f(0, 1, 0).normalized(),
-		45.f, 0.1f, 50.f, screen_width / screen_height);
 
 	Light light1({20, 20, 20, 1}, {700, 700, 700}, {10, 10, 10});
 	Light light2({-20, 20, 0, 1}, {500, 500, 500}, {10, 10, 10});
 	lightList.push_back(light1);
 	lightList.push_back(light2);
 
-	//setModel("./models/cube/cube.obj");
-	setObject();
+	setModel("./models/spot/Model.obj");
+	//setObject();
 	//SetTriangles();
 	Rasterizer r(screen_width, screen_height);
 	//r.setMSAAState();
-	//SetTexture(r);
+	SetTexture(r);
 
-	while(1)
+	do
 	{
+		objectList[0].object_rotation = Vector3f(0, angle, 0);
+		objectList[0].object_scale = Vector3f(scale, scale, scale);
+
 		r.clearBuffer();
-		std::vector<Object> olist = objectList;
-		std::vector<Light> lList = lightList;
+		std::vector<Object> copyObjectList = objectList;
+		std::vector<Light> copyLightList = lightList;
 
 		r.setViewMatrix(getViewMatrix(camera));
 		r.setProjectionMatrix(getProjectionMatrix(camera));
 
-		r.vertexShader(olist, lList, camera);
-		r.fragmentShader(olist, lList);
+		r.vertexShader(copyObjectList, copyLightList, camera);
+		r.fragmentShader(copyObjectList, copyLightList);
 		
 
 		cv::Mat image(screen_height, screen_width, CV_32FC3, r.getFrameBuffer().data());
@@ -148,13 +164,94 @@ int main()
 		cv::cvtColor(image, image, cv::COLOR_RGB2BGR);
 		
 		cv::imshow("image", image);
+		
+		//等待键盘输入
+		key = cv::waitKey(0);
+		//等待鼠标输入
+		cv::setMouseCallback("image", OnMouse);
 
-		cv::waitKey(0);
+		processInput();
+		//std::cout << frameCount++ << std::endl;
 
-		std::cout << frameCount++ << std::endl;
-	} 
+		system("cls");
 
-	
+	} while (key != 27);
 
 	return 0;
+}
+
+void OnMouse(int event, int x, int y, int flags, void* ustc)
+{
+	float deltaAngle = 0.001f;
+	static cv::Point2f p{ -1, -1 };
+
+	if (event == cv::EVENT_LBUTTONDOWN)
+	{
+		p = cvPoint(x, y);
+		//yaw += 10;
+		std::cout << p.x << " " << p.y << std::endl;
+		//std::cout << camera.Yaw << std::endl;
+	}
+
+	if (event == cv::EVENT_MOUSEMOVE && (flags & cv::EVENT_FLAG_LBUTTON))
+	{
+		int dx = x - p.x;
+		int dy = y - p.y;
+
+		if (x >= 0 && x <= screen_width - 1 && y >= 0 && y <= screen_height - 1)
+		{
+			//std::cout << dx << " " << dy << std::endl;
+			if (dx > 0)
+			{
+				camera.RotateYaw(deltaAngle * dx);
+			}
+			if (dx < 0)
+			{
+				camera.RotateYaw(deltaAngle * dx);
+			}
+			if (dy > 0)
+			{
+				camera.RotatePitch(deltaAngle * dy);
+			}
+			else if (dy < 0)
+			{
+				camera.RotatePitch(deltaAngle * dy);
+			}
+		}
+	}
+
+}
+
+void processInput()
+{
+	switch (key)
+	{
+	case 'q':
+		angle += -10;
+		break;
+	case 'e':
+		angle += 10;
+		break;
+	case 'z':
+		scale += 0.2;
+		break;
+	case 'c':
+		scale += -0.2;
+		break;
+	case 'w':
+		camera.CameraTrans(Vector3f(0, 0, 0.5));
+		break;
+	case 's':
+		camera.CameraTrans(Vector3f(0, 0.0, -0.5));
+		break;
+	case 'a':
+		camera.CameraTrans(Vector3f(0.5f, 0, 0));
+		break;
+	case 'd':
+		camera.CameraTrans(Vector3f(-0.5f, 0, 0));
+		break;
+
+	}
+	if (scale > 5) scale = 5;
+	if (scale < 0.3) scale = 0.3;
 }

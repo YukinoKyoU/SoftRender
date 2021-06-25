@@ -1,5 +1,9 @@
+
 #ifndef GLOBAL_H_
 #define GLOBAL_H_
+
+#include "Triangle.h"
+#include "Camera.h"
 
 constexpr float PI = 3.1415926;
 
