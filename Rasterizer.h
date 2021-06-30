@@ -54,25 +54,30 @@ public:
 
 	void setModelMatrix(const Object & object);
 
-	//void setViewMatrix(const Camera& c);
-	//void setProjectionMatrix(const Camera& c);
+	void setViewMatrix(const Camera& c);
+	void setProjectionMatrix(const Camera& c);
 
-	void setViewMatrix(const Matrix4f& v);
-	void setProjectionMatrix(const Matrix4f& p);
+	//void setViewMatrix(const Matrix4f& v);
+	//void setProjectionMatrix(const Matrix4f& p);
 
 	void setSSAAState();
 
+	void UpdateViewPlanes();
+	bool ViewCull(const Vector4f& v1, const Vector4f& v2, const Vector4f& v3);
+	
 private:
 	int height;						//屏幕高度
 	int width;						//屏幕宽度
 
-	Matrix4f model_matrix;			//model矩阵
-	Matrix4f view_matrix;			//view矩阵
-	Matrix4f projection_matrix;		//projection矩阵
+	std::vector<Vector4f>	viewPlanes;
 
-	Matrix4f mvp_matrix;				//mvp矩阵
+	Matrix4f modelMatrix;			//model矩阵
+	Matrix4f viewMatrix;			//view矩阵
+	Matrix4f projectionMatrix;		//projection矩阵
+	
+	Matrix4f mvpMatrix;				//mvp矩阵
 
-	Matrix4f viewport_matrix;		//视口变换矩阵
+	Matrix4f viewportMatrix;		//视口变换矩阵
 
 	std::vector<Vector3f>	frameBuffer;		//颜色信息的缓冲
 	std::vector<Vector3f>   colorBuffer;
@@ -85,9 +90,6 @@ private:
 	std::optional<Texture> bumpMap;
 	std::optional<Texture> normalMap;
 };
-
-
-
 
 #endif // !RASTERIZER
 

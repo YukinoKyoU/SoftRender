@@ -25,7 +25,7 @@ public:
 private:
 	cv::Mat texture;
 	int width, height;
-	double_lerp double_lerp_state;
+	double_lerp doubleLerpState;
 };
 
 #endif // !TEXTURE_H_

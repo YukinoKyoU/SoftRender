@@ -50,16 +50,16 @@ public:
 	Vector3f textureWithNormal();
 
 private:
-	Vector3f point_color;
-	Vector3f point_normal;
+	Vector3f pointColor;
+	Vector3f pointNormal;
 	const std::vector<Light> *lightLists;
-	Vector3f point_position;
-	Vector2f point_texCoord;
-	Texture* point_texture;
-	Texture* point_bumpMap;
-	Texture* point_normalMap;
+	Vector3f pointPosition;
+	Vector2f pointTexCoord;
+	Texture* pointTexture;
+	Texture* pointBumpMap;
+	Texture* pointNormalMap;
 
-	ShaderType shader_type;
+	ShaderType shaderType;
 };
 
 #endif // !Shader

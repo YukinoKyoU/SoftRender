@@ -12,65 +12,6 @@ static float angleToRadian(float angle)
 	return (angle / 180) * PI;
 }
 
-static Eigen::Matrix4f getViewMatrix(const Camera& c)
-{
-	Matrix4f camera_trans;			//移动矩阵
-	Matrix4f camera_rotation;		//旋转矩阵
-
-	Vector3f w = -c.lookAt_dir.normalized();	//摄像机的z轴
-	Vector3f v = c.up_dir;						//摄像机的y轴
-	Vector3f u = v.cross(w);					//摄像机的x轴
-
-	camera_trans << 1, 0, 0, -c.camera_position.x(),
-		0, 1, 0, -c.camera_position.y(),
-		0, 0, 1, -c.camera_position.z(),
-		0, 0, 0, 1;
-
-	camera_rotation << u.x(), u.y(), u.z(), 0,
-		v.x(), v.y(), v.z(), 0,
-		w.x(), w.y(), w.z(), 0,
-		0, 0, 0, 1;
-
-	//矩阵左乘计算出视图矩阵
-	return  camera_rotation * camera_trans;
-}
-
-static Eigen::Matrix4f getProjectionMatrix(const Camera& c)
-{
-	//透视投影矩阵
-	Matrix4f perspective;							//将透视视锥转化到长方体空间中（透视投影）
-	Matrix4f orthoTrans, orthoScale, ortho;			//将长方体空间投影到齐次剪裁空间中
-
-	float t, r;			//近平面的上边界和右边界
-
-	float radFov = angleToRadian(c.fov);
-	t = tan(radFov / 2) * c.near;
-	r = c.aspectRatio * t;
-
-	float n = c.near;
-	float f = c.far;
-
-	perspective << n, 0, 0, 0,
-		0, n, 0, 0,
-		0, 0, n + f, -n * f,
-		0, 0, -1, 0;
-
-	orthoTrans << 1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, -(n + f) / 2,
-		0, 0, 0, 1;
-
-	orthoScale << 1 / r, 0, 0, 0,
-		0, 1 / t, 0, 0,
-		0, 0, 2 / (n - f), 0,
-		0, 0, 0, 1;
-
-	ortho = orthoScale * orthoTrans;
-
-	//矩阵左乘计算出透视投影矩阵
-	return ortho * perspective;
-}
-
 //判断像素点是否在三角形内
 static bool isInsideTriangle(const float x, const float y, const Triangle& t)
 {
@@ -135,4 +76,84 @@ static float interpolate(float alpha, float beta, float gamma, const float& vert
 	return (alpha * vert1 + beta * vert2 + gamma * vert3) * Z;
 }
 
+static void ViewingFrustumPlanes(std::vector<Vector4f>& result, const Matrix4f & vp)
+{
+	
+	//左侧  
+	result[0].x() = vp(3, 0) + vp(0, 0);
+	result[0].y() = vp(3, 1) + vp(0, 1);
+	result[0].z() = vp(3, 2) + vp(0, 2);
+	result[0].w() = vp(3, 3) + vp(0, 3);
+	//右侧
+	result[1].x() = vp(3, 0) - vp(0, 0);
+	result[1].y() = vp(3, 1) - vp(0, 1);
+	result[1].z() = vp(3, 2) - vp(0, 2);
+	result[1].w() = vp(3, 3) - vp(0, 3);
+	//上侧
+	result[2].x() = vp(3, 0) - vp(1, 0);
+	result[2].y() = vp(3, 1) - vp(1, 1);
+	result[2].z() = vp(3, 2) - vp(1, 2);
+	result[2].w() = vp(3, 3) - vp(1, 3);
+	//下侧
+	result[3].x() = vp(3, 0) + vp(1, 0);
+	result[3].y() = vp(3, 1) + vp(1, 1);
+	result[3].z() = vp(3, 2) + vp(1, 2);
+	result[3].w() = vp(3, 3) + vp(1, 3);
+	//Near
+	result[4].x() = vp(3, 0) + vp(2, 0);
+	result[4].y() = vp(3, 1) + vp(2, 1);
+	result[4].z() = vp(3, 2) + vp(2, 2);
+	result[4].w() = vp(3, 3) + vp(2, 3);
+	//Far
+	result[5].x() = vp(3, 0) - vp(2, 0);
+	result[5].y() = vp(3, 1) - vp(2, 1);
+	result[5].z() = vp(3, 2) - vp(2, 2);
+	result[5].w() = vp(3, 3) - vp(2, 3);
+}
+
+/*
+static void ViewingFrustumPlanes(std::vector<Vector4f>& result, const Matrix4f& vp)
+{
+
+	//左侧  
+	result[0].x() = vp(0, 3) + vp(0, 0);
+	result[0].y() = vp(1, 3) + vp(1, 0);
+	result[0].z() = vp(2, 3) + vp(2, 0);
+	result[0].w() = vp(3, 3) + vp(3, 0);
+	//右侧
+	result[1].x() = vp(0, 3) - vp(0, 0);
+	result[1].y() = vp(1, 3) - vp(1, 0);
+	result[1].z() = vp(2, 3) - vp(2, 0);
+	result[1].w() = vp(3, 3) - vp(3, 0);
+	//上侧
+	result[2].x() = vp(0, 3) - vp(0, 1);
+	result[2].y() = vp(1, 3) - vp(1, 1);
+	result[2].z() = vp(2, 3) - vp(2, 1);
+	result[2].w() = vp(3, 3) - vp(3, 1);
+	//下侧
+	result[3].x() = vp(0, 3) + vp(0, 1);
+	result[3].y() = vp(1, 3) + vp(1, 1);
+	result[3].z() = vp(2, 3) + vp(2, 1);
+	result[3].w() = vp(3, 3) + vp(3, 1);
+	//Near
+	result[4].x() = vp(0, 3) + vp(0, 2);
+	result[4].y() = vp(1, 3) + vp(1, 2);
+	result[4].z() = vp(2, 3) + vp(2, 2);
+	result[4].w() = vp(3, 3) + vp(3, 2);
+	//Far
+	result[5].x() = vp(0, 3) - vp(0, 2);
+	result[5].y() = vp(1, 3) - vp(1, 2);
+	result[5].z() = vp(2, 3) - vp(2, 2);
+	result[5].w() = vp(3, 3) - vp(3, 2);
+}
+*/
+
+static bool Point2Plane(const Vector3f & v, const Vector4f& p) {
+	//点到平面距离 d =  Ax + By + Cz + D;
+	// d < 0 点在平面法向反方向所指的区域
+	// d > 0 点在平面法向所指的区域
+	// d = 0 在平面上
+	// d < 0为 false
+	return p.x() * v.x() + p.y() * v.y() + p.z() * v.z() + p.w() >= 0;
+}
 #endif // !GLOBAL_H_

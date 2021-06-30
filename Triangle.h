@@ -13,8 +13,9 @@ public:
 	Vector4f normal[3];		//三个法线坐标
 	Vector2f texCoord[3];	//三个纹理坐标
 
-	Vector4f vertex_in_view[3];
-	Vector4f vertex_in_clip[3];
+	Vector4f vertexInWorld[3];
+	Vector4f vertexInView[3];
+	Vector4f vertexInClip[3];
 
 
 	Triangle();

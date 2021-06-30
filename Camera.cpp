@@ -3,7 +3,7 @@
 
 void Camera::CameraTrans(Vector3f position)
 {
-	camera_position += position;
+	cameraPosition += position;
 }
 
 void Camera::RotatePitch(float angle)
@@ -35,7 +35,7 @@ void Camera::UpdateCameraVectors()
 	front.z() = -cos(angleToRadian(yaw)) * cos(angleToRadian(pitch));
 
 	//每次执行旋转操作后，使用三角函数求得新的前向量
-	lookAt_dir = front.normalized();
-	Vector3f right = lookAt_dir.cross(Vector3f(0, 1, 0)).normalized();
-	up_dir = right.cross(lookAt_dir).normalized();
+	lookAtDir = front.normalized();
+	Vector3f right = lookAtDir.cross(Vector3f(0, 1, 0)).normalized();
+	upDir = right.cross(lookAtDir).normalized();
 }
