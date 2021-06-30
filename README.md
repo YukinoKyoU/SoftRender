@@ -21,15 +21,23 @@ The purpose of rewriting this renderer is mainly for better understanding basic 
 ***
 
 ## Example
-**Triangles**
+- **Triangles**
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/Triangles.png"/>
 
-**Tringles with SSAA**
+- **Tringles with SSAA**
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/TrianglesWithSSAA.png"/>
 
-**Spot**
+- **Spot With Normal**
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/spotNormal.png"/>
 
-**Spot with Blinn-Phone**
+- **Spot with Blinn-Phong**
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/spotBlinn.jpg"/>
 
-**Mario**
+- **Spot with Texture**
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/spotTexture.jpg"/>
 
-**Neptubne**
+- **Mario** (without Texture)
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/Mario.png"/>
 
+- **Neptubne**  (without Texture)
+<img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/Neptune.jpg"/>
