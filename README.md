@@ -20,6 +20,12 @@ The purpose of rewriting this renderer is mainly for better understanding basic 
 - Movable rotatable camera
 ***
 
+## Functions
+- Press 'Q', 'E' to rotate the model
+- Press 'W', 'S', 'A', 'D' to move the camera back and forth, left and right.
+- Drag the mouse to rotate the camera
+***
+
 ## Example
 - **Triangles**
 <img width="400" height="400" src="https://raw.githubusercontent.com/YukinoKyoU/SoftRender/master/Examples/Triangles.png"/>
